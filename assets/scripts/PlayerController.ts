@@ -83,7 +83,6 @@ export class PlayerController extends Component {
   }
   update(deltaTime: number) {
     this.autoRun(deltaTime);
-    console.log(this.currentSpeed + " và " + this.moveSpeed);
   }
   public autoRun(dt: number): void {
     if (!this.isRunning || !this.rigidBody || this.moveSpeed === 0) {
