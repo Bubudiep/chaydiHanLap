@@ -35,12 +35,54 @@ export class GameManager extends Component {
   private readonly UPDATE_INTERVAL: number = 0.5;
   private initialPlayerX: number = 0;
   private readonly SPEED_LEVELS = [
-    { distance: 0, speed: 10 }, // Mốc 0
-    { distance: 50, speed: 15 }, // Mốc 1
-    { distance: 100, speed: 20 }, // Mốc 2
-    { distance: 200, speed: 25 }, // Mốc 3
-    { distance: 350, speed: 32 }, // Mốc 4
-    { distance: 500, speed: 40 }, // Mốc 5
+    {
+      distance: 0,
+      speed: 10,
+      minRandomY: -40,
+      maxRandomY: 40,
+      minXrandom: 140,
+      maxXrandom: 180,
+    }, // Mốc 0
+    {
+      distance: 50,
+      speed: 15,
+      minRandomY: -50,
+      maxRandomY: 50,
+      minXrandom: 160,
+      maxXrandom: 240,
+    }, // Mốc 1
+    {
+      distance: 100,
+      speed: 20,
+      minRandomY: -40,
+      maxRandomY: 60,
+      minXrandom: 200,
+      maxXrandom: 300,
+    }, // Mốc 2
+    {
+      distance: 200,
+      speed: 25,
+      minRandomY: -30,
+      maxRandomY: 80,
+      minXrandom: 220,
+      maxXrandom: 380,
+    }, // Mốc 3
+    {
+      distance: 350,
+      speed: 32,
+      minRandomY: -20,
+      maxRandomY: 90,
+      minXrandom: 240,
+      maxXrandom: 450,
+    }, // Mốc 4
+    {
+      distance: 500,
+      speed: 40,
+      minRandomY: -30,
+      maxRandomY: 100,
+      minXrandom: 280,
+      maxXrandom: 550,
+    }, // Mốc 5
   ];
   private currentSpeedLevel: number = 0;
   onLoad() {
@@ -103,7 +145,6 @@ export class GameManager extends Component {
   }
   private updateDistanceLabel() {
     if (this.distanceLabel) {
-      // Sử dụng totalDistance được tính từ vị trí Player
       const tometer = this.totalDistance / 150;
       this.distanceLabel.string = `${tometer.toFixed(0)}M`;
     }
@@ -122,6 +163,10 @@ export class GameManager extends Component {
         this.currentSpeedLevel++;
         if (this.playerController) {
           this.playerController.moveSpeed = this.gameSpeed;
+        }
+        if (this.groundManager) {
+          this.groundManager.minRandomX = nextLevel.minXrandom;
+          this.groundManager.maxRandomX = nextLevel.maxXrandom;
         }
       }
     }
@@ -145,19 +190,11 @@ export class GameManager extends Component {
     if (this.isGameRunning) {
       this.isGameRunning = false;
       console.log("Game Đã Dừng.");
-
-      // **********************************
-      // DỪNG CHẠY NHÂN VẬT
-      // **********************************
       if (this.playerController) {
         this.playerController.stop();
       }
     }
   }
-
-  /**
-   * Tiếp tục game.
-   */
   public resumeGame() {
     if (!this.isGameRunning) {
       this.isGameRunning = true;

@@ -40,6 +40,13 @@ export class PlayerController extends Component {
     tooltip: "Lực tác động khi nhảy (nên là giá trị lớn, 200-500)",
   })
   public jumpForce: number = 300;
+  @property({
+    type: CCFloat,
+    tooltip: "Lực tác động ngược chiều khi Wall Jump",
+  })
+  public wallJumpXForce: number = 300; // Lực đẩy ngược chiều X
+  private wallcheckColliderTag: Number = 8; // Tag cho vật cản (Tường)
+  private wallContactColliders: Set<Collider2D> = new Set();
   private _worldCenter: Vec2 = new Vec2();
   private isRunning: boolean = true;
   private rigidBody: RigidBody2D = null!;
@@ -49,6 +56,9 @@ export class PlayerController extends Component {
   private groundContactColliders: Set<Collider2D> = new Set();
   public get isOnGround(): boolean {
     return this.groundContactColliders.size > 0;
+  }
+  public get isOnWall(): boolean {
+    return this.wallContactColliders.size > 0;
   }
   onLoad() {
     this.rigidBody = this.node.getComponent(RigidBody2D)!;
@@ -135,14 +145,44 @@ export class PlayerController extends Component {
       this.jump();
     }
   }
+  // Trong PlayerController.ts
+
   private jump() {
-    if (!this.isRunning || !this.isOnGround || !this.rigidBody) {
+    if (!this.isRunning || !this.rigidBody) {
       return;
     }
-    this.rigidBody.applyLinearImpulseToCenter(
-      new Vec2(0, this.jumpForce),
-      true
-    );
+    // Kiểm tra: Đang chạm tường VÀ KHÔNG CHẠM đất
+    if (this.isOnWall && !this.isOnGround) {
+      // Xác định hướng nhảy ngược
+      // Giả sử: Nhân vật luôn chạy về phía trước (X dương)
+      // Nếu chạm tường, ta cần xác định tường đang ở bên trái hay bên phải.
+      // Cách đơn giản nhất là dựa vào hướng va chạm.
+      // Tuy nhiên, vì đây là endless runner và nhân vật luôn chạy phải,
+      // Ta chỉ cần đẩy nhân vật ngược chiều X (sang trái).
+      // Hoặc xác định hướng: Nếu velocity.x hiện tại dương, đẩy ngược (âm); nếu âm, đẩy ngược (dương).
+      const currentVX = this.rigidBody.linearVelocity.x;
+      const pushDirectionX = currentVX > 0 ? -1 : 1;
+      // Áp dụng lực Wall Jump: Lực Y để nhảy lên, Lực X để đẩy ra
+      this.rigidBody.applyLinearImpulseToCenter(
+        new Vec2(
+          this.wallJumpXForce * pushDirectionX, // Đẩy ngược chiều ngang
+          this.jumpForce // Lực nhảy dọc
+        ),
+        true
+      );
+      // Quan trọng: Sau khi Wall Jump, loại bỏ trạng thái bám tường tạm thời (nếu cần)
+      // và reset vận tốc X để bắt đầu tăng tốc lại từ 0 (giống như sau khi va chạm mạnh).
+      this.currentSpeed = 0;
+      return; // Dùng return để không thực hiện Double Jump/Regular Jump
+    }
+
+    // --- REGULAR JUMP LOGIC (Chỉ nhảy khi chạm đất) ---
+    if (this.isOnGround) {
+      this.rigidBody.applyLinearImpulseToCenter(
+        new Vec2(0, this.jumpForce),
+        true
+      );
+    }
   }
   private onBeginContact(
     selfCollider: Collider2D,
@@ -151,6 +191,16 @@ export class PlayerController extends Component {
   ) {
     if (otherCollider.tag === 9) {
       this.groundContactColliders.add(otherCollider);
+      if (this.rigidBody) {
+        const velocity = this.rigidBody.linearVelocity;
+        if (velocity.y < 0) {
+          velocity.y = 0;
+          this.rigidBody.linearVelocity = velocity;
+        }
+      }
+    }
+    if (otherCollider.tag === this.wallcheckColliderTag) {
+      this.wallContactColliders.add(otherCollider);
     }
   }
   private onEndContact(
@@ -161,6 +211,9 @@ export class PlayerController extends Component {
     // Kiểm tra tag và xóa khỏi Set nếu đúng
     if (otherCollider.tag === 9) {
       this.groundContactColliders.delete(otherCollider);
+    }
+    if (otherCollider.tag === this.wallcheckColliderTag) {
+      this.wallContactColliders.delete(otherCollider);
     }
   }
 }
