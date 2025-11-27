@@ -100,7 +100,7 @@ export class GroundManager extends Component {
     this.activeGrounds.forEach((node) => node.destroy());
     this.activeGrounds = [];
     // Tọa độ Y giới hạn ban đầu (Nếu bạn dùng minGroundYLimit thì áp dụng ở đây)
-    const START_X = 200;
+    const START_X = 0;
     const START_Y = -330;
     this.lastGroundY = START_Y; // Có thể áp dụng Math.max(minGroundYLimit, START_Y) nếu cần
     let currentX = START_X;

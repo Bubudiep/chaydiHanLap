@@ -1,7 +1,16 @@
-import { _decorator, Component, Node, CCFloat, Label, resources } from "cc";
+import {
+  _decorator,
+  Component,
+  Node,
+  CCFloat,
+  Label,
+  resources,
+  director,
+} from "cc";
 
 import { PlayerController } from "./PlayerController";
 import { GroundManager } from "./GroundManager"; // Import GroundManager mới
+import { ModalManager } from "./Modal/ModalManager";
 
 const { ccclass, property } = _decorator;
 
@@ -12,10 +21,8 @@ export class GameManager extends Component {
     tooltip: "Tọa độ Y tối thiểu của Player. Nếu thấp hơn, Game Over.",
   })
   public fallLimitY: number = -700; // Đặt ngưỡng ngã xuống
-
   @property({ type: Node, tooltip: "Node gốc của Player" })
   public playerNode: Node = null!;
-
   @property({ type: PlayerController, tooltip: "Script PlayerController" })
   public playerController: PlayerController = null!;
   private groundManager: GroundManager = null!;
@@ -24,9 +31,13 @@ export class GameManager extends Component {
     tooltip: "Tốc độ game (tốc độ Player/tốc độ di chuyển Ground)",
   })
   public gameSpeed: number = 10;
-
   @property({ type: Label, tooltip: "Label hiển thị quãng đường đã chạy" })
   public distanceLabel: Label = null!;
+  @property({
+    type: ModalManager,
+    tooltip: "Script quản lý Modal (Popup)",
+  })
+  public modalManager: ModalManager = null!;
 
   private score: number = 0;
   private totalDistance: number = 0;
@@ -189,7 +200,6 @@ export class GameManager extends Component {
   public pauseGame() {
     if (this.isGameRunning) {
       this.isGameRunning = false;
-      console.log("Game Đã Dừng.");
       if (this.playerController) {
         this.playerController.stop();
       }
@@ -207,12 +217,18 @@ export class GameManager extends Component {
       }
     }
   }
-  // --- Game Over ---
   public gameOver() {
-    this.isGameRunning = false;
-    console.log(`Game Over! Final Score: ${Math.floor(this.score)}`);
+    this.pauseGame();
+    if (this.modalManager) this.modalManager.showGameOverPopup();
   }
   public onGroundsLoaded() {
     this.finishGameStart();
+  }
+  public restartGame() {
+    this.pauseGame();
+    const currentSceneName = director.getScene().name;
+    director.loadScene(currentSceneName, () => {
+      console.log(`Scene ${currentSceneName} đã được tải lại.`);
+    });
   }
 }

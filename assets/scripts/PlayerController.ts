@@ -76,7 +76,6 @@ export class PlayerController extends Component {
   }
 
   onDestroy() {
-    // Dọn dẹp lắng nghe để tránh rò rỉ bộ nhớ
     input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     if (this.groundcheckCollider) {
       this.groundcheckCollider.off(
