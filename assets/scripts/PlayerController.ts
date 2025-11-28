@@ -68,10 +68,12 @@ export class PlayerController extends Component {
       (colider) => colider.tag === this.groundcheckColliderTag
     );
     if (this.playerColliders.length > 0) {
-      this.playerColliders.forEach((collider) => {
-        collider.on(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
-        collider.on(Contact2DType.END_CONTACT, this.onEndContact, this);
-      });
+      this.playerColliders
+        .filter((c) => [9, 8].indexOf(c.tag) !== -1)
+        .forEach((collider) => {
+          collider.on(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
+          collider.on(Contact2DType.END_CONTACT, this.onEndContact, this);
+        });
     }
   }
 
@@ -198,7 +200,10 @@ export class PlayerController extends Component {
         }
       }
     }
-    if (otherCollider.tag === this.wallcheckColliderTag) {
+    if (
+      selfCollider.tag === 99 &&
+      otherCollider.tag === this.wallcheckColliderTag
+    ) {
       this.wallContactColliders.add(otherCollider);
     }
   }
@@ -207,11 +212,13 @@ export class PlayerController extends Component {
     otherCollider: Collider2D,
     contact: IPhysics2DContact | null
   ) {
-    // Kiểm tra tag và xóa khỏi Set nếu đúng
     if (otherCollider.tag === 9) {
       this.groundContactColliders.delete(otherCollider);
     }
-    if (otherCollider.tag === this.wallcheckColliderTag) {
+    if (
+      selfCollider.tag === 99 &&
+      otherCollider.tag === this.wallcheckColliderTag
+    ) {
       this.wallContactColliders.delete(otherCollider);
     }
   }
