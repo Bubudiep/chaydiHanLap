@@ -193,7 +193,7 @@
     "_priority": 0,
     "_fov": 30,
     "_fovAxis": 0,
-    "_orthoHeight": 390.8449197860963,
+    "_orthoHeight": 360,
     "_near": 0,
     "_far": 1600,
     "_color": {
@@ -426,7 +426,7 @@
       "__id__": 8
     },
     "_children": [],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 10
@@ -819,22 +819,6 @@
     "_id": "a41XHDj7RBv6yO+BJSV3KT"
   },
   {
-    "__type__": "1647bj5+h5J06pBkNwff6jd",
-    "_name": "",
-    "_objFlags": 0,
-    "__editorExtras__": {},
-    "node": {
-      "__id__": 6
-    },
-    "_enabled": true,
-    "__prefab": null,
-    "moveSpeed": 50,
-    "accelerationRate": 3,
-    "jumpForce": 12,
-    "wallJumpXForce": 12,
-    "_id": "5fGHFmsf1BJbW2lCQH1gM3"
-  },
-  {
     "__type__": "cc.BoxCollider2D",
     "_name": "",
     "_objFlags": 0,
@@ -898,19 +882,19 @@
     "__prefab": null,
     "tag": 9,
     "_group": 1,
-    "_density": 1,
+    "_density": 0,
     "_sensor": true,
     "_friction": 0,
     "_restitution": 0,
     "_offset": {
       "__type__": "cc.Vec2",
       "x": 1.1,
-      "y": -30.7
+      "y": -32.8
     },
     "_size": {
       "__type__": "cc.Size",
       "width": 10.9,
-      "height": 6.1
+      "height": 5.4
     },
     "_id": "e9k3ws94lFpaFIt8cQNAvD"
   },
@@ -926,7 +910,7 @@
     "__prefab": null,
     "tag": 99,
     "_group": 1,
-    "_density": 1,
+    "_density": 0,
     "_sensor": true,
     "_friction": 0,
     "_restitution": 0,
@@ -941,6 +925,22 @@
       "height": 11.8
     },
     "_id": "36YqkqfyJLp4bPJilIaJli"
+  },
+  {
+    "__type__": "1647bj5+h5J06pBkNwff6jd",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 6
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "moveSpeed": 50,
+    "accelerationRate": 10,
+    "jumpForce": 8,
+    "wallJumpXForce": 12,
+    "_id": "5fGHFmsf1BJbW2lCQH1gM3"
   },
   {
     "__type__": "cc.Node",
@@ -3315,7 +3315,7 @@
     "_priority": 0,
     "_fov": 45,
     "_fovAxis": 0,
-    "_orthoHeight": 390.8449197860963,
+    "_orthoHeight": 360,
     "_near": 0,
     "_far": 1000,
     "_color": {
@@ -4312,9 +4312,9 @@
       "__id__": 6
     },
     "playerController": {
-      "__id__": 23
+      "__id__": 27
     },
-    "gameSpeed": 10,
+    "gameSpeed": 12,
     "distanceLabel": {
       "__id__": 137
     },
@@ -8769,11 +8769,11 @@
   {
     "__type__": "cc.ClickEvent",
     "target": {
-      "__id__": 9
+      "__id__": 6
     },
     "component": "",
     "_componentId": "1647bj5+h5J06pBkNwff6jd",
-    "handler": "jump",
+    "handler": "jump_btn",
     "customEventData": ""
   },
   {

@@ -13,6 +13,7 @@ import {
   EventKeyboard,
   Collider2D,
   CCFloat,
+  animation,
   ERigidBody2DType, // Thêm RigidBodyType
   // Cần thêm các import liên quan đến vật lý 2D
 } from "cc";
@@ -50,8 +51,6 @@ export class PlayerController extends Component {
   private _worldCenter: Vec2 = new Vec2();
   private isRunning: boolean = true;
   private rigidBody: RigidBody2D = null!;
-  private groundcheckColliderTag: Number = 9;
-  private groundcheckCollider: Collider2D = null;
   private playerColliders: Collider2D[] = [];
   private groundContactColliders: Set<Collider2D> = new Set();
   public get isOnGround(): boolean {
@@ -60,13 +59,22 @@ export class PlayerController extends Component {
   public get isOnWall(): boolean {
     return this.wallContactColliders.size > 0;
   }
+  public get isFalling(): boolean {
+    if (!this.rigidBody) return false;
+    return this.rigidBody.linearVelocity.y < -0.1;
+  }
+  private isMovingLeft: boolean = false;
+  private isMovingRight: boolean = false;
+  private animController: animation.AnimationController = null!;
   onLoad() {
     this.rigidBody = this.node.getComponent(RigidBody2D)!;
-    input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     this.playerColliders = this.node.getComponents(Collider2D);
-    this.groundcheckCollider = this.playerColliders.find(
-      (colider) => colider.tag === this.groundcheckColliderTag
-    );
+    this.animController = this.node.getComponent(
+      animation.AnimationController
+    )!;
+    if (!this.animController) {
+      console.error("AnimationController component not found!");
+    }
     if (this.playerColliders.length > 0) {
       this.playerColliders
         .filter((c) => [9, 8].indexOf(c.tag) !== -1)
@@ -75,25 +83,65 @@ export class PlayerController extends Component {
           collider.on(Contact2DType.END_CONTACT, this.onEndContact, this);
         });
     }
+    input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+    input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
   }
 
   onDestroy() {
     input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
-    if (this.groundcheckCollider) {
-      this.groundcheckCollider.off(
-        Contact2DType.BEGIN_CONTACT,
-        this.onBeginContact,
-        this
-      );
-      this.groundcheckCollider.off(
-        Contact2DType.END_CONTACT,
-        this.onEndContact,
-        this
-      );
-    }
+    input.off(Input.EventType.KEY_UP, this.onKeyUp, this);
+    this.playerColliders
+      .filter((c) => [9, 8].indexOf(c.tag) !== -1)
+      .forEach((collider) => {
+        collider.off(Contact2DType.BEGIN_CONTACT, this.onBeginContact, this);
+        collider.off(Contact2DType.END_CONTACT, this.onEndContact, this);
+      });
   }
   update(deltaTime: number) {
-    this.autoRun(deltaTime);
+    // this.autoRun(deltaTime);
+    this.handleMovement(deltaTime);
+    this.updateAnimationParameters();
+  }
+  private updateAnimationParameters() {
+    if (!this.animController || !this.rigidBody) return;
+    this.animController.setValue("falling", this.isFalling);
+    this.animController.setValue("grounded", this.isOnGround);
+  }
+  public handleMovement(dt: number): void {
+    if (!this.rigidBody) return;
+    let targetSpeed = 0;
+    let direction = 0;
+    if (this.isMovingRight) {
+      direction = 1;
+    } else if (this.isMovingLeft) {
+      direction = -1;
+    }
+    if (direction !== 0) {
+      this.currentSpeed = Math.min(
+        this.currentSpeed + this.accelerationRate * dt,
+        this.moveSpeed
+      );
+      targetSpeed = direction * this.currentSpeed;
+    } else {
+      this.currentSpeed = Math.max(
+        this.currentSpeed - this.accelerationRate * dt * 2, // Giảm tốc nhanh hơn
+        0
+      );
+      targetSpeed =
+        this.currentSpeed * Math.sign(this.rigidBody.linearVelocity.x);
+      if (this.currentSpeed === 0) {
+        targetSpeed = 0;
+      }
+    }
+    if (targetSpeed > 0) {
+      this.node.setScale(1, this.node.scale.y, this.node.scale.z);
+    } else if (targetSpeed < 0) {
+      this.node.setScale(-1, this.node.scale.y, this.node.scale.z);
+    }
+    const velocity = this.rigidBody.linearVelocity;
+    this.animController.setValue("speed", targetSpeed);
+    velocity.x = targetSpeed;
+    this.rigidBody.linearVelocity = velocity;
   }
   public autoRun(dt: number): void {
     if (!this.isRunning || !this.rigidBody || this.moveSpeed === 0) {
@@ -106,8 +154,8 @@ export class PlayerController extends Component {
     }
     if (this.currentSpeed < this.moveSpeed) {
       this.currentSpeed = Math.min(
-        this.currentSpeed + this.accelerationRate * dt, // Tốc độ tăng dần
-        this.moveSpeed // Giới hạn ở tốc độ tối đa
+        this.currentSpeed + this.accelerationRate * dt,
+        this.moveSpeed
       );
     }
     const velocity = this.rigidBody.linearVelocity;
@@ -115,14 +163,11 @@ export class PlayerController extends Component {
     this.rigidBody.linearVelocity = velocity;
   }
   public stop() {
-    // 1. Lưu lại các giá trị tốc độ game
     this._originalMoveSpeed = this.moveSpeed;
     this._originalAccelerationRate = this.accelerationRate;
-
     this.isRunning = false;
     this.moveSpeed = 0;
     this.currentSpeed = 0;
-
     if (this.rigidBody) {
       this._savedVelocity.set(this.rigidBody.linearVelocity);
       this.rigidBody.linearVelocity = new Vec2(0, 0);
@@ -143,41 +188,44 @@ export class PlayerController extends Component {
   }
   private onKeyDown(event: EventKeyboard) {
     if (event.keyCode === KeyCode.SPACE) {
+      this.animController.setValue("startjump", true);
       this.jump();
     }
+    if (event.keyCode === KeyCode.KEY_A) {
+      this.isMovingLeft = true;
+    } else if (event.keyCode === KeyCode.KEY_D) {
+      this.isMovingRight = true;
+    }
   }
-  // Trong PlayerController.ts
-
+  private onKeyUp(event: EventKeyboard) {
+    if (event.keyCode === KeyCode.SPACE) {
+      this.animController.setValue("startjump", false);
+    }
+    if (event.keyCode === KeyCode.KEY_A) {
+      this.isMovingLeft = false;
+    } else if (event.keyCode === KeyCode.KEY_D) {
+      this.isMovingRight = false;
+    }
+    if (!this.isMovingLeft && !this.isMovingRight && !this.isRunning) {
+      this.currentSpeed = 0; // Đặt tốc độ hiện tại về 0 khi dừng
+    }
+  }
+  // private jump() {
+  //   if (this.isOnGround) {
+  //     this.rigidBody.applyLinearImpulseToCenter(
+  //       new Vec2(0, this.jumpForce),
+  //       true
+  //     );
+  //   } else {
+  //     console.log(this.groundContactColliders.size);
+  //   }
+  // }
+  private jump_btn() {
+    this.animController.setValue("startjump", true);
+    this.jump();
+    setTimeout(() => this.animController.setValue("startjump", false), 500);
+  }
   private jump() {
-    if (!this.isRunning || !this.rigidBody) {
-      return;
-    }
-    // Kiểm tra: Đang chạm tường VÀ KHÔNG CHẠM đất
-    if (this.isOnWall && !this.isOnGround) {
-      // Xác định hướng nhảy ngược
-      // Giả sử: Nhân vật luôn chạy về phía trước (X dương)
-      // Nếu chạm tường, ta cần xác định tường đang ở bên trái hay bên phải.
-      // Cách đơn giản nhất là dựa vào hướng va chạm.
-      // Tuy nhiên, vì đây là endless runner và nhân vật luôn chạy phải,
-      // Ta chỉ cần đẩy nhân vật ngược chiều X (sang trái).
-      // Hoặc xác định hướng: Nếu velocity.x hiện tại dương, đẩy ngược (âm); nếu âm, đẩy ngược (dương).
-      const currentVX = this.rigidBody.linearVelocity.x;
-      const pushDirectionX = currentVX > 0 ? -1 : 1;
-      // Áp dụng lực Wall Jump: Lực Y để nhảy lên, Lực X để đẩy ra
-      this.rigidBody.applyLinearImpulseToCenter(
-        new Vec2(
-          this.wallJumpXForce * pushDirectionX, // Đẩy ngược chiều ngang
-          this.jumpForce // Lực nhảy dọc
-        ),
-        true
-      );
-      // Quan trọng: Sau khi Wall Jump, loại bỏ trạng thái bám tường tạm thời (nếu cần)
-      // và reset vận tốc X để bắt đầu tăng tốc lại từ 0 (giống như sau khi va chạm mạnh).
-      this.currentSpeed = 0;
-      return; // Dùng return để không thực hiện Double Jump/Regular Jump
-    }
-
-    // --- REGULAR JUMP LOGIC (Chỉ nhảy khi chạm đất) ---
     if (this.isOnGround) {
       this.rigidBody.applyLinearImpulseToCenter(
         new Vec2(0, this.jumpForce),
@@ -190,7 +238,7 @@ export class PlayerController extends Component {
     otherCollider: Collider2D,
     contact: IPhysics2DContact | null
   ) {
-    if (otherCollider.tag === 9) {
+    if (otherCollider.tag === 9 && selfCollider.tag === 9) {
       this.groundContactColliders.add(otherCollider);
       if (this.rigidBody) {
         const velocity = this.rigidBody.linearVelocity;

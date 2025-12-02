@@ -38,7 +38,6 @@ export class GameManager extends Component {
     tooltip: "Script quản lý Modal (Popup)",
   })
   public modalManager: ModalManager = null!;
-
   private score: number = 0;
   private totalDistance: number = 0;
   private isGameRunning: boolean = false;
